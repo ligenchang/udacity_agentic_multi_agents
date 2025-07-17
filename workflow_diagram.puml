@@ -1,0 +1,96 @@
+@startuml Beaver's Choice Paper Company Multi-Agent System
+
+actor Customer
+participant "Orchestrator Agent" as OA
+participant "Inventory Agent" as IA
+participant "Quoting Agent" as QA
+participant "Ordering Agent" as OrderA
+database "Database" as DB
+
+== Request Processing ==
+
+Customer -> OA: Submit paper product request
+activate OA
+
+OA -> OA: Extract items and quantities
+OA -> OA: Extract context information
+
+OA -> IA: Check inventory status
+activate IA
+IA -> DB: get_all_inventory()
+DB --> IA: Current inventory
+IA --> OA: Inventory status
+deactivate IA
+
+OA -> QA: Calculate quote
+activate QA
+QA -> DB: get_stock_level()
+DB --> QA: Stock information
+QA -> QA: Apply pricing and discounts
+QA --> OA: Quote information
+deactivate QA
+
+OA -> QA: Search similar quotes
+activate QA
+QA -> DB: search_quote_history()
+DB --> QA: Similar quotes
+QA --> OA: Historical quotes
+deactivate QA
+
+alt All items available
+    OA -> OrderA: Process order
+    activate OrderA
+    OrderA -> DB: create_transaction()
+    DB --> OrderA: Transaction ID
+    OrderA --> OA: Order status
+    deactivate OrderA
+    
+    OA -> OrderA: Generate order summary
+    activate OrderA
+    OrderA --> OA: Customer-friendly summary
+    deactivate OrderA
+else Some items unavailable
+    OA -> OA: Prepare quote-only response
+end
+
+OA -> IA: Check reorder requirements
+activate IA
+IA -> DB: get_stock_level()
+DB --> IA: Current stock levels
+IA -> IA: Identify items below threshold
+IA --> OA: Items to reorder
+deactivate IA
+
+loop For each item to reorder
+    OA -> IA: Place stock order
+    activate IA
+    IA -> DB: get_cash_balance()
+    DB --> IA: Available cash
+    IA -> DB: create_transaction()
+    DB --> IA: Transaction ID
+    IA -> IA: Calculate delivery date with get_supplier_delivery_date()
+    IA --> OA: Order confirmation
+    deactivate IA
+end
+
+OA -> OrderA: Get financial snapshot
+activate OrderA
+OrderA -> DB: generate_financial_report()
+DB --> OrderA: Financial data
+OrderA --> OA: Updated financial status
+deactivate OrderA
+
+OA -> OA: Generate customer response
+OA --> Customer: Response with quote/order details
+deactivate OA
+
+== Financial Reporting ==
+
+OA -> OrderA: Generate financial report
+activate OrderA
+OrderA -> DB: generate_financial_report()
+DB --> OrderA: Cash balance, inventory value
+OrderA --> OA: Final financial report
+deactivate OrderA
+
+@enduml
